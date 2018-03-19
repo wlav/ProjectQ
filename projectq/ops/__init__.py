@@ -53,8 +53,9 @@ def _enable_noise():
              gdict[gate],
              getattr(noise_model, gate+'_model'),
              *getattr(noise_model, gate+'_args'))
-          log.debug('added noise model for', gate)
-       except AttributeError:
+          log.debug('added noise model for %s', gate)
+       except AttributeError, e:
+          log.debug('no noise model for %s (%s)', gate, str(e))
           pass
 
 _enable_noise()

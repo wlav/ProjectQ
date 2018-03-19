@@ -26,7 +26,7 @@ Get started:
 """
 
 import logging
-def _setupLogger(log, lvl):
+def _setupLogger(log):
    import sys
    hdlr = logging.StreamHandler(sys.stdout)
    frmt = logging.Formatter(log.name+': %(levelname)8s %(message)s')
@@ -36,8 +36,7 @@ def _setupLogger(log, lvl):
          log.removeHandler(h)
          break
    log.addHandler(hdlr)
-   log.setLevel(lvl)
-_setupLogger(logging.getLogger('ProjectQ'), logging.INFO)
+_setupLogger(logging.getLogger('ProjectQ'))
 del _setupLogger
 
 from ._version import __version__
