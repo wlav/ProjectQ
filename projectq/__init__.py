@@ -25,5 +25,20 @@ Get started:
     Shor's algorithm for factoring.
 """
 
+import logging
+def _setupLogger(log, lvl):
+   import sys
+   hdlr = logging.StreamHandler(sys.stdout)
+   frmt = logging.Formatter(log.name+': %(levelname)8s %(message)s')
+   hdlr.setFormatter(frmt)
+   for h in log.handlers:
+      if h.formatter._fmt == logging.BASIC_FORMAT:
+         log.removeHandler(h)
+         break
+   log.addHandler(hdlr)
+   log.setLevel(lvl)
+_setupLogger(logging.getLogger('ProjectQ'), logging.INFO)
+del _setupLogger
+
 from ._version import __version__
 from projectq.cengines import MainEngine
