@@ -33,3 +33,28 @@ from ._qftgate import QFT, QFTGate
 from ._qubit_operator import QubitOperator
 from ._shortcuts import *
 from ._time_evolution import TimeEvolution
+
+from ._noise import inject_noise
+
+def _enable_noise():
+    try:
+        import noise_model
+    except ImportError:
+        return
+
+    import logging
+    log = logging.getLogger('ProjectQ')
+    log.info('injecting noise models ... ')
+
+    gdict = globals()
+    for gate in ['Rx', 'Ry', 'Rz', 'H', 'CNOT']:
+       try:
+          gdict[gate] = inject_noise(
+             gdict[gate],
+             getattr(noise_model, gate+'_model'),
+             *getattr(noise_model, gate+'_args'))
+          log.debug('added noise model for', gate)
+       except AttributeError:
+          pass
+
+_enable_noise()
