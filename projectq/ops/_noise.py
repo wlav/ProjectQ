@@ -41,6 +41,10 @@ class LocalNoiseGate(BasicGate):
         self._dist = distribution
         self._args = args
 
+    def update_model(self, distribution, *args):
+        self._dist = distribution
+        self._args = args
+
     def __str__(self):
         """
         Return string representation (str(gate) + \"_noisy\").
@@ -112,6 +116,10 @@ class NoisyAngleGate(LocalNoiseGate):
 class NoisyAngleGateFactory(object):
     def __init__(self, gate_type, distribution, *args):
         self._type = gate_type
+        self._dist = distribution
+        self._args = args
+
+    def update_model(self, distribution, *args):
         self._dist = distribution
         self._args = args
 
