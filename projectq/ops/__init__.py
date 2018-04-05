@@ -38,24 +38,24 @@ from ._noise import inject_noise
 
 def _enable_noise():
     try:
-        import noise_model
+        import noise_traits
     except ImportError:
         return
 
     import logging
     log = logging.getLogger('ProjectQ')
-    log.info('injecting noise models ... ')
+    log.info('injecting noise ... ')
 
     gdict = globals()
     for gate in ['Rx', 'Ry', 'Rz', 'H', 'CNOT']:
        try:
           gdict[gate] = inject_noise(
              gdict[gate],
-             getattr(noise_model, gate+'_model'),
-             *getattr(noise_model, gate+'_args'))
-          log.debug('added noise model for %s', gate)
+             getattr(noise_traits, gate+'_pdf'),
+             *getattr(noise_traits, gate+'_pdf_args'))
+          log.debug('added noise to gate %s', gate)
        except AttributeError, e:
-          log.debug('no noise model for %s (%s)', gate, str(e))
+          log.debug('no noise for gate %s (%s)', gate, str(e))
           pass
 
 _enable_noise()
