@@ -11,6 +11,7 @@ As well as the create function
 
 import copy, random
 import numpy as np
+from math import sin, cos
 
 from ._basics import BasicGate, SelfInverseGate
 from ._metagates import get_inverse
@@ -29,12 +30,33 @@ I = IGate()
 
 class PartialXGate(SelfInverseGate):
     """ Partial bit-flip (X) gate class """
+    def __init__(self, rnd):
+        SelfInverseGate.__init__(self)
+        self._rnd = rnd
+
     def __str__(self):
         return "PX"
 
     @property
     def matrix(self):
-        return np.matrix([[0, 1], [1, 0]])
+        rnd = self._rnd
+        return np.matrix([[-sin(rnd), cos(rnd)],
+                          [ cos(rnd), sin(rnd)]])
+
+class PureNoiseRotationGate(SelfInverseGate):
+    """ Partial bit-flip (X) gate class """
+    def __init__(self, rnd):
+        SelfInverseGate.__init__(self)
+        self._rnd = rnd
+
+    def __str__(self):
+        return "W"
+
+    @property
+    def matrix(self):
+        rnd = self._rnd
+        return np.matrix([[cos(rnd), -sin(rnd)],
+                          [sin(rnd),  cos(rnd)]])
 
 
 class LocalNoiseGate(BasicGate):
@@ -50,7 +72,7 @@ class LocalNoiseGate(BasicGate):
     will add stochastic noise using gaussian sampling to H.
     """
 
-    def __init__(self, gate, distribution, *args):
+    def __init__(self, gate, distribution, epsilon, *args):
         """
         Initialize a LocalNoiseGate representing the a noisy version of the
         gate 'gate'.
@@ -62,11 +84,11 @@ class LocalNoiseGate(BasicGate):
 
         BasicGate.__init__(self)
         self._gate = gate
-        self._dist = distribution
-        self._args = args
+        self.update_model(distribution, epsilon, *args)
 
-    def update_model(self, distribution, *args):
+    def update_model(self, distribution, epsilon, *args):
         self._dist = distribution
+        self._thrh = epsilon
         self._args = args
 
     def __str__(self):
@@ -133,17 +155,17 @@ class NoisyAngleGate(LocalNoiseGate):
 
 
 class NoisyAngleGateFactory(object):
-    def __init__(self, gate_type, distribution, *args):
+    def __init__(self, gate_type, distribution, epsilon, *args):
         self._type = gate_type
-        self._dist = distribution
-        self._args = args
+        self.update_model(distribution, epsilon, *args)
 
-    def update_model(self, distribution, *args):
+    def update_model(self, distribution, epsilon, *args):
         self._dist = distribution
+        self._thrh = epsilon
         self._args = args
 
     def __call__(self, *args):
-        return NoisyAngleGate(self._type(*args), self._dist, *self._args)
+        return NoisyAngleGate(self._type(*args), self._dist, self._thrh, *self._args)
 
     def get_name(self):
         return self._type.__name__
@@ -168,10 +190,9 @@ class NoisyCNOTGate(LocalNoiseGate):
     will add stochastic noise using gaussian sampling to CNOT.
     """
 
-    def __init__(self, distribution, *args):
+    def __init__(self, distribution, epsilon, *args):
         from ._shortcuts import CNOT
-        LocalNoiseGate.__init__(self, CNOT, distribution, *args)
-        self.threshold = 1.0
+        LocalNoiseGate.__init__(self, CNOT, distribution, epsilon, *args)
 
     def __or__(self, qubits):
         """
@@ -185,15 +206,22 @@ class NoisyCNOTGate(LocalNoiseGate):
 
         # TODO: this is only b/c CNOT is an object; would prefer to fit a
         # factory in somewhere (and anyway not to have to touch internals)
-
         noisy_gate = copy.deepcopy(self._gate)
-        if random.random() > self.threshold:
+        noise = self._dist(*self._args)
+        noisy_gate._gate = PartialXGate(noise[1])
+
+        if random.random() > 1.-self._thrh:
             noisy_gate._gate = I
 
-        return noisy_gate | qubits
+        # apply operation and noise on target qubit
+        noisy_gate | qubits
+
+        # now apply wobble on control qubit
+        if noise[0] != 0.0:
+            PureNoiseRotationGate(noise[0]) | qubits[0]
 
 
-def inject_noise(gate, distribution, *args):
+def inject_noise(gate, distribution, epsilon = 0., *args):
     """
     Wrapper creator specific to the given gate to add stochastic noise
     that follows the sampling distribution.
@@ -211,9 +239,9 @@ def inject_noise(gate, distribution, *args):
     from ._shortcuts import CNOT
 
     if gate in (Rx, Ry, Rz):
-        return NoisyAngleGateFactory(gate, distribution, *args)
+        return NoisyAngleGateFactory(gate, distribution, epsilon, *args)
 
     if gate in (CNOT,):
-        return NoisyCNOTGate(distribution, *args)
+        return NoisyCNOTGate(distribution, epsilon, *args)
 
     return gate

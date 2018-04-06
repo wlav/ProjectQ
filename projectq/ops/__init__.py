@@ -48,14 +48,19 @@ def _enable_noise():
 
     gdict = globals()
     for gate in ['Rx', 'Ry', 'Rz', 'H', 'CNOT']:
-       try:
-          gdict[gate] = inject_noise(
-             gdict[gate],
-             getattr(noise_traits, gate+'_pdf'),
-             *getattr(noise_traits, gate+'_pdf_args'))
-          log.debug('added noise to gate %s', gate)
-       except AttributeError, e:
-          log.debug('no noise for gate %s (%s)', gate, str(e))
-          pass
+       pdf, epsilon, args = None, 0, ()
+       if hasattr(noise_traits, gate+'_pdf'):
+          pdf = getattr(noise_traits, gate+'_pdf')
+       if hasattr(noise_traits, gate+'_epsilon'):
+          epsilon = getattr(noise_traits, gate+'_epsilon')
+       if hasattr(noise_traits, gate+'_pdf_args'):
+          args = getattr(noise_traits, gate+'_pdf_args')
+
+       if not pdf and not epsilon:
+          log.debug('no noise for gate %s', gate)
+          continue
+
+       log.debug('added noise to gate %s', gate)
+       gdict[gate] = inject_noise(gdict[gate], pdf, epsilon, *args)
 
 _enable_noise()
