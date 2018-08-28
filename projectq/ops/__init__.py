@@ -33,7 +33,9 @@ from ._qftgate import QFT, QFTGate
 from ._qubit_operator import QubitOperator
 from ._shortcuts import *
 from ._time_evolution import TimeEvolution
-
+from ._uniformly_controlled_rotation import (UniformlyControlledRy,
+                                             UniformlyControlledRz)
+from ._state_prep import StatePreparation
 from ._noise import inject_noise
 
 def _enable_noise():
