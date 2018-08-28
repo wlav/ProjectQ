@@ -43,20 +43,57 @@ class PartialXGate(SelfInverseGate):
         return np.matrix([[-sin(rnd), cos(rnd)],
                           [ cos(rnd), sin(rnd)]])
 
-class PureNoiseRotationGate(SelfInverseGate):
-    """ Partial bit-flip (X) gate class """
     def __init__(self, rnd):
         SelfInverseGate.__init__(self)
         self._rnd = rnd
 
     def __str__(self):
-        return "W"
+        return "WYX"
+
+    def get_inverse(self):
+        return PureNoiseXYRotationGate(self._rnd)
 
     @property
     def matrix(self):
         rnd = self._rnd
         return np.matrix([[cos(rnd), -sin(rnd)],
                           [sin(rnd),  cos(rnd)]])
+
+class PureNoiseXYRotationGate(BasicGate):
+    """ Partial random X+Y rotation gate class """
+    def __init__(self, rnd):
+        BasicGate.__init__(self)
+        self._rnd = rnd
+
+    def __str__(self):
+        return "WXY"
+
+    def get_inverse(self):
+        return PureNoiseYXRotationGate(self._rnd)
+
+    def _Xwobble(self):
+        rnd = self._rnd*0.5
+        return np.matrix([[    cos(rnd), -1j*sin(rnd)],
+                          [-1j*sin(rnd),     cos(rnd)]])
+
+    def _Ywobble(self):
+        rnd = self._rnd*0.5
+        return np.matrix([[cos(rnd), -sin(rnd)],
+                          [sin(rnd),  cos(rnd)]])
+
+    @property
+    def matrix(self):
+        return self._Ywobble()*self._Xwobble()
+
+class PureNoiseYXRotationGate(PureNoiseXYRotationGate):
+    """ Partial random Y+X rotation gate class """
+
+    def get_inverse(self):
+        return PureNoiseXYRotationGate(self._rnd)
+
+    @property
+    def matrix(self):
+        return self._Xwobble()*self._Ywobble()
 
 
 class LocalNoiseGate(BasicGate):
@@ -86,10 +123,13 @@ class LocalNoiseGate(BasicGate):
         self._gate = gate
         self.update_model(distribution, epsilon, *args)
 
-    def update_model(self, distribution, epsilon, *args):
-        self._dist = distribution
-        self._thrh = epsilon
-        self._args = args
+    def update_model(self, distribution = None, epsilon = None, *args):
+        if distribution is not None:
+            self._dist = distribution
+        if epsilon is not None:
+            self._thrh = epsilon
+        if args is not None:
+            self._args = args
 
     def __str__(self):
         """
@@ -159,10 +199,13 @@ class NoisyAngleGateFactory(object):
         self._type = gate_type
         self.update_model(distribution, epsilon, *args)
 
-    def update_model(self, distribution, epsilon, *args):
-        self._dist = distribution
-        self._thrh = epsilon
-        self._args = args
+    def update_model(self, distribution = None, epsilon = None, *args):
+        if distribution is not None:
+            self._dist = distribution
+        if epsilon is not None:
+            self._thrh = epsilon
+        if args is not None:
+            self._args = args
 
     def __call__(self, *args):
         return NoisyAngleGate(self._type(*args), self._dist, self._thrh, *self._args)
@@ -218,7 +261,7 @@ class NoisyCNOTGate(LocalNoiseGate):
 
         # now apply wobble on control qubit
         if noise[0] != 0.0:
-            PureNoiseRotationGate(noise[0]) | qubits[0]
+            PureNoiseXYRotationGate(noise[0]) | qubits[0]
 
 
 def inject_noise(gate, distribution, epsilon = 0., *args):
