@@ -1,4 +1,7 @@
-from projectq.ops import All, CNOT, H, Measure, Rz, X, Z
+import logging
+logging.getLogger('ProjectQ').setLevel(logging.DEBUG)
+
+from projectq.ops import H, X, Z, Rz, CNOT, Measure
 from projectq import MainEngine
 from projectq.meta import Dagger, Control
 

@@ -519,6 +519,9 @@ class _Circ2Tikz(object):
             ctrl_lines (list<int>): List of qubit lines which act as controls.
 
         """
+        if not ctrl_lines:
+            return self._regular_gate(X, lines, ctrl_lines)
+
         assert(len(lines) == 1)  # NOT gate only acts on 1 qubit
         line = lines[0]
         delta_pos = self._gate_offset(X)
@@ -579,6 +582,8 @@ class _Circ2Tikz(object):
         try:
             gates = self.settings['gates']
             gate_width = gates[gate.__class__.__name__]['width']
+            if gate.__class__.__name__ == 'XGate':
+                return 0.5
         except KeyError:
             gate_width = .5
         return gate_width
@@ -614,6 +619,8 @@ class _Circ2Tikz(object):
         try:
             gates = self.settings['gates']
             delta_pos = gates[gate.__class__.__name__]['offset']
+            if gate.__class__.__name__ == 'XGate':
+                return 0.1
         except KeyError:
             delta_pos = .2
         return delta_pos
@@ -630,6 +637,8 @@ class _Circ2Tikz(object):
             gate = gate._gate
         try:
             height = self.settings['gates'][gate.__class__.__name__]['height']
+            if gate.__class__.__name__ == 'XGate':
+                return 0.5
         except KeyError:
             height = .5
         return height
