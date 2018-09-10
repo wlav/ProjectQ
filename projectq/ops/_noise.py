@@ -29,7 +29,22 @@ class IGate(SelfInverseGate):
 I = IGate()
 
 
-class LocalNoiseBase(BasicGate):
+class ModelMixin(object):
+    def __init__(self, pdf, frate, *args):
+        self._pdf   = pdf
+        self._frate = frate
+        self._args  = args
+
+    def update_model(self, pdf=None, frate=None, args=None):
+        if pdf is not None:
+            self._pdf = pdf
+        if frate is not None:
+            self._frate = frate
+        if args is not None:
+            self._args = args
+
+
+class LocalNoiseBase(BasicGate, ModelMixin):
     """
     Helper to capture common structure of noisy gate implementations.
     """
@@ -44,17 +59,7 @@ class LocalNoiseBase(BasicGate):
             *args: argument to use when calling the pdf
         """
         BasicGate.__init__(self)
-        self._pdf   = pdf
-        self._frate = frate
-        self._args  = args
-
-    def update_model(self, pdf=None, frate=None, args=None):
-        if pdf is not None:
-            self._pdf = pdf
-        if frate is not None:
-            self._frate = frate
-        if args is not None:
-            self._args = args
+        ModelMixin.__init__(self, pdf, frate, *args)
 
     def noise(self):
         return self._pdf(*self._args)
@@ -248,14 +253,14 @@ class NoisyAngleGate(LocalNoiseGate):
             noisy_gate | qb
 
 
-class NoisyAngleGateFactory(LocalNoiseBase):
+class NoisyAngleGateFactory(ModelMixin):
     """
     Angle gates are instances (e.g. Rx is a class, Rx(3.14) an instance), so
     forward the noise pdf, interject this factory as the "class."
     """
 
     def __init__(self, gate_type, pdf, frate, *args):
-        LocalNoiseBase.__init__(self, pdf, frate, *args)
+        ModelMixin.__init__(self, pdf, frate, *args)
         self._type = gate_type
 
     def __call__(self, *args):
@@ -297,7 +302,7 @@ class NoisyCNOTGate(LocalNoiseGate):
         # gate to wobble the source
         def pdf0(*args):
             return pdf(*args)[0]
-        self._control_noise = XNoiseGate(pdf0, frate, *args)
+        self._control_noise = XYNoiseGate(5, pdf0, frate, *args)
 
     def update_model(self, pdf=None, frate=None, args=None):
         # update both self as well as the underlying gates
