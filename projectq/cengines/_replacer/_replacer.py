@@ -170,6 +170,7 @@ class AutoReplacer(BasicEngine):
                         break
 
             if len(decomp_list) == 0:
+                return
                 raise NoGateDecompositionError("\nNo replacement found for " +
                                                str(cmd) + "!")
 
